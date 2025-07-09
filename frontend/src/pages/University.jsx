@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { BottomWarning } from "../components/BottomWarning";
 import { Button } from "../components/Button";
@@ -55,7 +54,7 @@ export const University = () => {
   // Redirect to different pages based on user type
   const redirectToHomePage = (type) => {
     if (type === "university") {
-      navigate("/unihome");
+      navigate("/university");
     } else {
       alert("Invalid user type.");
     }
