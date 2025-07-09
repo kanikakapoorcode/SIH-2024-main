@@ -1,50 +1,116 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
-  const OtpPopup = ({ isOpen, onClose, onSubmit }) => {
+const OtpPopup = ({ 
+  isOpen, 
+  onClose, 
+  onSubmit, 
+  isLoading = false, 
+  error = '',
+  attemptsRemaining = 3,
+  resendTimer = 0
+}) => {
   const [otp, setOtp] = useState("");
+
+  // Focus input when popup opens
+  useEffect(() => {
+    if (isOpen) {
+      document.querySelector('.otp-input')?.focus();
+    }
+  }, [isOpen]);
+
+  const handleSubmit = () => {
+    if (otp.length === 6) {
+      onSubmit(otp);
+    }
+  };
 
   if (!isOpen) return null;
 
-  const handleSubmit = () => {
-    onSubmit(otp);
-    setOtp(""); 
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
-        <h2 className="text-xl font-bold mb-4 text-center">Enter OTP</h2>
-        <p className="text-gray-600 text-sm mb-4 text-center">
-           Enter the 6-digit OTP sent to your registered Email.
-        </p>
-        <input
-          type="text"
-          value={otp}
-          onChange={(e) => setOtp(e.target.value)}
-          maxLength={6}
-          className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4 text-center text-lg"
-          placeholder="Enter OTP"
-        />
-        <div className="flex justify-between items-center">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 text-sm font-medium"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="px-4 py-2 bg-blue-900 text-white rounded-md hover:bg-blue-900 text-sm font-medium"
-          >
-            Submit
-          </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+        <div className="p-6">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Verify Your Email</h2>
+            <p className="text-gray-600 mb-6">
+              Enter the 6-digit code sent to your email
+            </p>
+
+            {/* Attempts remaining */}
+            <div className="text-sm text-gray-600 mb-6">
+              {attemptsRemaining} attempts remaining
+            </div>
+          </div>
+
+          {/* OTP Input */}
+          <div className="flex justify-center space-x-2 mb-6">
+            <input
+              type="text"
+              className="otp-input w-12 h-12 text-2xl text-center border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={otp}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                setOtp(value);
+              }}
+              maxLength="6"
+              disabled={isLoading}
+              placeholder="••••••"
+              autoFocus
+            />
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-md">
+              {error}
+            </div>
+          )}
+
+          {/* Resend OTP */}
+          <div className="text-center text-sm text-gray-600 mb-6">
+            Didn't receive the code?{' '}
+            <button
+              onClick={() => onSubmit('resend')}
+              disabled={resendTimer > 0 || isLoading}
+              className={`font-medium ${
+                resendTimer > 0 || isLoading
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-blue-600 hover:text-blue-700'
+              }`}
+            >
+              {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code'}
+            </button>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex flex-col space-y-3">
+            <button
+              onClick={handleSubmit}
+              disabled={otp.length !== 6 || isLoading}
+              className={`w-full py-3 px-4 rounded-lg font-medium text-white ${
+                otp.length === 6 && !isLoading
+                  ? 'bg-blue-600 hover:bg-blue-700'
+                  : 'bg-blue-400 cursor-not-allowed'
+              } transition-colors`}
+            >
+              {isLoading ? 'Verifying...' : 'Verify'}
+            </button>
+
+            <button
+              onClick={onClose}
+              disabled={isLoading}
+              className="w-full py-3 px-4 rounded-lg font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
- export default OtpPopup;
+export default OtpPopup;
 // import React, { useState } from "react";
 // import { BottomWarning } from "../components/BottomWarning";
 // import { Button } from "../components/Button";

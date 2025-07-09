@@ -1,94 +1,186 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BottomWarning } from "../components/BottomWarning";
 import { Button } from "../components/Button";
 import { Heading } from "../components/Heading";
 import { InputBox } from "../components/InputBox";
 import { SubHeading } from "../components/SubHeading";
 import OtpPopup from "../components/OtpPopup";
-import { useNavigate } from "react-router-dom"; // React Router for navigation
+import { useNavigate } from "react-router-dom";
+import { useOtpVerification } from "../hooks/useOtpVerification";
 
 export const University = () => {
   const [isOtpPopupOpen, setIsOtpPopupOpen] = useState(false);
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [userType, setUserType] = useState(""); // Store the user type (Inspector/University)
-  const navigate = useNavigate(); // React Router hook for navigation
+  const [userType, setUserType] = useState("");
+  const [formData, setFormData] = useState({
+    universityId: "",
+    universityName: "",
+    designation: "",
+    contactNumber: "",
+    username: ""
+  });
+  
+  const navigate = useNavigate();
 
-  const handleVerifyAndSignup = () => {
+  // Use the OTP verification hook
+  const { 
+    isLoading, 
+    error, 
+    otpSent, 
+    attemptsRemaining,
+    resendTimer,
+    sendOtp, 
+    verifyOtp, 
+    resetOtp 
+  } = useOtpVerification(email);
+
+  const handleVerifyAndSignup = async () => {
     if (!email) {
-      alert("Please enter a valid email address");
+      alert('Please enter a valid email address');
       return;
-  };
-    // Logic to send OTP email to the provided email address.
-    // You'll need to implement the backend API call for sending the OTP to the email
-    sendOtpEmail(email).then((response) => {
-      if (response.success) {
-        setIsOtpPopupOpen(true); // Open OTP popup
-      } else {
-        alert("Failed to send OTP. Please try again.");
-      }
-    });
-  };
+    }
 
-    // Function to simulate sending OTP email (this would actually be handled in your backend)
-    const sendOtpEmail = async (email) => {
-      // Call to your backend or API to send OTP
-      // For now, simulate an API call
-      console.log(`Sending OTP to ${email}`);
-      return { success: true }; // Assume OTP is sent successfully
-    };
-
-  const handleOtpSubmit = (otp) => {
-    console.log("Submitted OTP:", otp);
-    // Logic to validate OTP from your backend or OTP service
-    const isOtpValid = otp === "1234"; // You would replace this with real OTP validation logic
-
-    if (isOtpValid) {
-      setIsOtpPopupOpen(false); // Close the OTP popup
-      redirectToHomePage(userType); // Redirect based on user type (Inspector or University)
-    } else {
-      alert("Invalid OTP. Please try again.");
+    // Show OTP popup
+    setIsOtpPopupOpen(true);
+    
+    // Try to send OTP if not already sent
+    if (!otpSent) {
+      await sendOtp();
     }
   };
 
-  // Redirect to different pages based on user type
-  const redirectToHomePage = (type) => {
-    if (type === "university") {
-      navigate("/university");
-    } else {
-      alert("Invalid user type.");
+  const handleOtpSubmit = async (enteredOtp) => {
+    const isValid = await verifyOtp(enteredOtp);
+    if (isValid) {
+      // OTP verified, proceed with signup
+      setIsOtpPopupOpen(false);
+      handleSignup();
     }
+  };
+
+  const handleOtpPopupClose = () => {
+    setIsOtpPopupOpen(false);
+    resetOtp();
+  };
+
+  const handleSignup = () => {
+    // Here you would typically send the form data to your backend
+    console.log("Form data:", { email, ...formData });
+    
+    // For now, just redirect to the university dashboard
+    navigate("/university/dashboard");
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   return (
-    <div className="bg-slate-300 h-screen flex justify-center">
-      <div className="flex flex-col justify-center">
-        <div className="rounded-lg bg-white w-90 text-center p-2 h-max px-4">
+    <div className="min-h-screen bg-slate-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl p-6">
+        <div className="text-center mb-8">
           <Heading label={"University Official Details"} />
           <SubHeading label={"Enter your information to create an account"} />
+        </div>
+
+        {/* Error message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-4">
           <InputBox
+            type="email"
+            name="email"
             placeholder="Enter your email"
             label={"Email Address"}
             value={email}
-            onChange={(e) => setEmail(e.target.value)} // Set email input value
-          />         
-          <InputBox placeholder="743298" label={"University ID"} />
-          <InputBox placeholder="Graphic Era Hill University" label={"University Name"} />
-          <InputBox placeholder="Rank" label={"Designation"} />
-          <InputBox placeholder="91+ " label={"Contact Number"} />
-          <InputBox placeholder="nimratkaur123" label={"Username"} />
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={otpSent}
+          />
+          
+          <InputBox 
+            name="universityId"
+            placeholder="743298" 
+            label={"University ID"}
+            value={formData.universityId}
+            onChange={handleInputChange}
+          />
+          
+          <InputBox 
+            name="universityName"
+            placeholder="Graphic Era Hill University" 
+            label={"University Name"}
+            value={formData.universityName}
+            onChange={handleInputChange}
+          />
+          
+          <InputBox 
+            name="designation"
+            placeholder="e.g., Professor, HOD" 
+            label={"Designation"}
+            value={formData.designation}
+            onChange={handleInputChange}
+          />
+          
+          <InputBox 
+            name="contactNumber"
+            type="tel"
+            placeholder="+91XXXXXXXXXX" 
+            label={"Contact Number"}
+            value={formData.contactNumber}
+            onChange={handleInputChange}
+          />
+          
+          <InputBox 
+            name="username"
+            placeholder="Choose a username" 
+            label={"Username"}
+            value={formData.username}
+            onChange={handleInputChange}
+          />
+          
           <div className="pt-4">
-            <Button onClick={handleVerifyAndSignup} label={"Verify & Signup"} />
+            <Button 
+              onClick={handleVerifyAndSignup}
+              disabled={isLoading}
+              label={
+                isLoading 
+                  ? "Processing..." 
+                  : otpSent 
+                    ? "Complete Signup" 
+                    : "Send OTP"
+              }
+              className={`w-full ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            />
           </div>
-          <BottomWarning label={"Already have an account?"} buttonText={"Sign in"} to={"/signin"} />
+          
+          <BottomWarning 
+            label={"Already have an account?"} 
+            buttonText={"Sign in"} 
+            to={"/signin"} 
+          />
         </div>
       </div>
+
       {/* OTP Popup */}
-      <OtpPopup
-        isOpen={isOtpPopupOpen}
-        onClose={() => setIsOtpPopupOpen(false)}
-        onSubmit={handleOtpSubmit}
-      />
+      {isOtpPopupOpen && (
+        <OtpPopup
+          isOpen={isOtpPopupOpen}
+          onClose={handleOtpPopupClose}
+          onSubmit={handleOtpSubmit}
+          isLoading={isLoading}
+          error={error}
+          attemptsRemaining={attemptsRemaining}
+          resendTimer={resendTimer}
+        />
+      )}
     </div>
   );
 };
